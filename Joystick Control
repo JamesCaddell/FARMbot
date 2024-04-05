@@ -1,0 +1,59 @@
+import RPi.GPIO as GPIO
+import pygame
+import time
+
+# Initialize pygame for joystick control
+pygame.init()
+pygame.joystick.init()
+joystick = pygame.joystick.Joystick(0)
+joystick.init()
+
+# GPIO pin setup
+sensor1_pin = 17
+sensor2_pin = 22
+motor1_pul = 23
+motor1_dir = 18
+motor2_pul = 14
+motor2_dir = 15
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(sensor1_pin, GPIO.IN)
+GPIO.setup(sensor2_pin, GPIO.IN)
+GPIO.setup([motor1_pul, motor1_dir, motor2_pul, motor2_dir], GPIO.OUT)
+
+def motor_control(motor_pul, motor_dir, direction):
+    GPIO.output(motor_dir, direction)
+    GPIO.output(motor_pul, GPIO.HIGH)
+    time.sleep(0.001)
+    GPIO.output(motor_pul, GPIO.LOW)
+    time.sleep(0.001)
+
+try:
+    while True:
+        pygame.event.pump()  # Process event queue
+        x_axis = joystick.get_axis(0)
+        y_axis = joystick.get_axis(1)
+        
+        # Motor 1 control (Left-Right)
+        if x_axis < -0.1:  # Move left
+            if GPIO.input(sensor1_pin) == 0:  # Check if sensor is not triggered
+                motor_control(motor1_pul, motor1_dir, GPIO.LOW)
+        elif x_axis > 0.1:  # Move right
+            if GPIO.input(sensor2_pin) == 0:  # Check if sensor is not triggered
+                motor_control(motor1_pul, motor1_dir, GPIO.HIGH)
+        
+        # Motor 2 control (Up-Down)
+        if y_axis < -0.1:  # Move up
+            motor_control(motor2_pul, motor2_dir, GPIO.LOW)
+        elif y_axis > 0.1:  # Move down
+            motor_control(motor2_pul, motor2_dir, GPIO.HIGH)
+
+        # Optional: Add a small delay for smoother operation
+        time.sleep(0.01)
+
+except KeyboardInterrupt:
+    print("Program exited cleanly")
+
+finally:
+    GPIO.cleanup()
+    pygame.quit()
